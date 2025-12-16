@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import Chance from 'chance';
-import { HasuraConfig } from './dto/hasura-config.dto';
+import { HasuraConfig } from './interfaces/hasura-config.interface';
 import { HasuraService } from './hasura.service';
 
 const chance = new Chance();

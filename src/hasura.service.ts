@@ -1,5 +1,5 @@
 import { GraphQLClient } from 'graphql-request';
-import { HasuraConfig } from './dto/hasura-config.dto';
+import type { HasuraConfig } from './interfaces/hasura-config.interface';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

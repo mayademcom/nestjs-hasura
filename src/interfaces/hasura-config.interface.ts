@@ -1,4 +1,4 @@
-export class HasuraConfig {
+export interface HasuraConfig {
   endpoint: string;
   adminSecret?: string | null;
 }
