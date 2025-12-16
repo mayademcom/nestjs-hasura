@@ -23,4 +23,4 @@ jobs:
             - name: Test and coverage
               run: npm run test:cov
             - name: SonarCloud Scan
-              uses: sonarsource/sonarcloud-github-action@master
+              uses: SonarSource/sonarqube-scan-action@v7.0.0
