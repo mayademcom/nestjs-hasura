@@ -1,2 +1,3 @@
-# nestjs-hasura
-Hasura module for NestJs projects. 
+# NestJs Hasura Module
+
+Hasura module for NestJs projects.
