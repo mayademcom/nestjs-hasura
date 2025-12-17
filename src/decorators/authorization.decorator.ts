@@ -40,15 +40,9 @@ export const Authorization = createParamDecorator(
   },
 );
 
-function addSpaceToPrefix(prefix: string) {
-  return `${prefix} `;
-}
-
 function parseToken(authHeader: string, prefix?: string) {
-  if (prefix) {
-    prefix = addSpaceToPrefix(prefix);
-    if (authHeader.startsWith(prefix))
-      return authHeader.substring(prefix.length);
-  }
+  if (prefix && authHeader.startsWith(prefix))
+    return authHeader.substring(prefix.length).trim();
+
   return authHeader;
 }

@@ -145,4 +145,19 @@ describe('Authorization Decorator', () => {
 
     expect(actualToken).toBe(token);
   });
+
+  it('should return empty when prefix matches but token part is empty', () => {
+    const mockRequest = {
+      headers: { authorization: 'Bearer' },
+    };
+
+    (
+      mockExecutionContext.switchToHttp().getRequest as jest.Mock
+    ).mockReturnValue(mockRequest);
+
+    const factory = getParamDecoratorFactory();
+    const actualToken = factory(undefined, mockExecutionContext);
+
+    expect(actualToken).toBe('');
+  });
 });
