@@ -31,23 +31,24 @@ export const Authorization = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const authHeader = request.headers.authorization as string;
-    if (!authHeader) {
-      if (required) {
-        throw new UnauthorizedException('Authorization header is required');
-      }
-      return null;
-    }
+    if (required && !authHeader)
+      throw new UnauthorizedException('Authorization header is required');
 
-    const prefixWithSpace = prefix ? `${prefix} ` : '';
+    if (authHeader) return parseToken(authHeader, prefix);
 
-    if (prefixWithSpace && authHeader.startsWith(prefixWithSpace)) {
-      return authHeader.substring(prefixWithSpace.length);
-    }
-
-    if (required && !authHeader) {
-      throw new UnauthorizedException('Invalid authorization format');
-    }
-
-    return authHeader;
+    return null;
   },
 );
+
+function addSpaceToPrefix(prefix: string) {
+  return `${prefix} `;
+}
+
+function parseToken(authHeader: string, prefix?: string) {
+  if (prefix) {
+    prefix = addSpaceToPrefix(prefix);
+    if (authHeader.startsWith(prefix))
+      return authHeader.substring(prefix.length);
+  }
+  return authHeader;
+}
