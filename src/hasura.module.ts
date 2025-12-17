@@ -1,7 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
+import { HasuraAsyncConfig, HasuraConfig } from './models';
 
-import { HasuraAsyncConfig } from './models/hasura-async-config.interface';
-import { HasuraConfig } from './models/hasura-config.interface';
 import { HasuraService } from './hasura.service';
 
 @Module({})
