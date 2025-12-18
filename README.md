@@ -5,10 +5,10 @@ A powerful and flexible NestJS module for seamless integration with Hasura Graph
 [![NPM Version](https://img.shields.io/npm/v/@mayademcom/nestjs-hasura.svg)](https://www.npmjs.com/package/@mayademcom/nestjs-hasura)
 [![NPM Downloads](https://img.shields.io/npm/dm/@mayademcom/nestjs-hasura.svg)](https://www.npmjs.com/package/@mayademcom/nestjs-hasura)
 [![License](https://img.shields.io/npm/l/@mayademcom/nestjs-hasura.svg)](https://github.com/mayademcom/nestjs-hasura/blob/main/LICENSE)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=mayadem_nestjs-hasura&metric=alert_status)](https://sonarcloud.io/dashboard?id=mayadem_nestjs-hasura)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=mayadem_nestjs-hasura&metric=coverage)](https://sonarcloud.io/dashboard?id=mayadem_nestjs-hasura)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=mayadem_nestjs-hasura&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=mayadem_nestjs-hasura)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mayadem_nestjs-hasura&metric=security_rating)](https://sonarcloud.io/dashboard?id=mayadem_nestjs-hasura)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=mayademcom_nestjs-hasura&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=mayademcom_nestjs-hasura)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=mayademcom_nestjs-hasura&metric=coverage)](https://sonarcloud.io/summary/new_code?id=mayademcom_nestjs-hasura)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=mayademcom_nestjs-hasura&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=mayademcom_nestjs-hasura)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mayademcom_nestjs-hasura&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=mayademcom_nestjs-hasura)
 
 ## Features
 
