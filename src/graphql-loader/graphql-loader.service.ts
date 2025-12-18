@@ -1,11 +1,11 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GraphQLLoaderService {
-  private queryCache = new Map<string, string>();
+  private readonly queryCache = new Map<string, string>();
 
   loadQuery(filePath: string): string {
     let query = this.loadQueryFromCache(filePath);
