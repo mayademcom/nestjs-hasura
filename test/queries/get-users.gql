@@ -1,0 +1,8 @@
+query GetUsers($limit: Int!) {
+  users(limit: $limit) {
+    id
+    name
+    email
+    created_at
+  }
+}

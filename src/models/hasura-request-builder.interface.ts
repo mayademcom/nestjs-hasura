@@ -4,5 +4,8 @@ export interface HasuraRequestBuilder {
   withHeaders(headers: Record<string, string>): HasuraRequestBuilder;
   withAdminSecret(): HasuraRequestBuilder;
   withAuthorizationToken(token: string): HasuraRequestBuilder;
-  request<T = any>(document: string, variables?: Variables): Promise<T>;
+  withQuery(query: string): HasuraRequestBuilder;
+  withVariables(variables: Variables): HasuraRequestBuilder;
+  withQueryFromFile(filePath: string): HasuraRequestBuilder;
+  execute<T = any>(): Promise<T>;
 }
