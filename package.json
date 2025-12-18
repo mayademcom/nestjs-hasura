@@ -17,10 +17,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk --require ts-node/register --require tsconfig-paths/register ./node_modules/jest/bin/jest.js --runInBand --no-cache"  
+    "test:debug": "node --inspect-brk --require ts-node/register --require tsconfig-paths/register ./node_modules/jest/bin/jest.js --runInBand --no-cache"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.x"
+  },
+  "dependencies": {
+    "graphql-request": "^7.4.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -67,9 +70,9 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "roots": ["<rootDir>/src/", "<rootDir>/test/"]
-  },
-  "dependencies": {
-    "graphql-request": "^7.4.0"
+    "roots": [
+      "<rootDir>/src/",
+      "<rootDir>/test/"
+    ]
   }
 }
