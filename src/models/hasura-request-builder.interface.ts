@@ -6,5 +6,6 @@ export interface HasuraRequestBuilder {
   withAuthorizationToken(token: string): HasuraRequestBuilder;
   withQuery(query: string): HasuraRequestBuilder;
   withVariables(variables: Variables): HasuraRequestBuilder;
+  withQueryFromFile(filePath: string): HasuraRequestBuilder;
   execute<T = any>(): Promise<T>;
 }

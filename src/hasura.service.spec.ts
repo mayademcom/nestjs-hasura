@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import Chance from 'chance';
+import { GraphQLLoaderService } from './graphql-loader/graphql-loader.service';
 import { HasuraConfig } from './models/hasura-config.interface';
 import { HasuraService } from './hasura.service';
 
@@ -21,6 +22,7 @@ describe('HasuraService', () => {
           useValue: mockConfig,
         },
         HasuraService,
+        GraphQLLoaderService,
       ],
     }).compile();
 
@@ -48,6 +50,7 @@ describe('HasuraService', () => {
             useValue: configWithoutSecret,
           },
           HasuraService,
+          GraphQLLoaderService,
         ],
       }).compile();
 
@@ -226,6 +229,7 @@ describe('HasuraService', () => {
             useValue: configWithoutSecret,
           },
           HasuraService,
+          GraphQLLoaderService,
         ],
       }).compile();
 
@@ -370,7 +374,7 @@ describe('HasuraService', () => {
       await expect(
         hasuraService.requestBuilder().withAdminSecret().execute(),
       ).rejects.toThrow(
-        'Query is required. Use withQuery() before calling execute()',
+        'Query is required. Use withQuery() or withQueryFromFile() before calling execute()',
       );
     });
 
@@ -414,6 +418,225 @@ describe('HasuraService', () => {
         expect.objectContaining({
           'x-hasura-admin-secret': mockConfig.adminSecret,
         }),
+      );
+    });
+  });
+
+  describe('requestBuilder with query from file', () => {
+    it('should load query from file', async () => {
+      const filePath = 'test/queries/get-users.gql';
+      const fileContent = 'query GetUsers { users { id name } }';
+      const expectedResponse = { users: [] };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withQueryFromFile(filePath)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(fileContent, {}, {});
+    });
+
+    it('should load query from file with variables', async () => {
+      const filePath = 'test-queries/get-user-by-id.gql';
+      const fileContent =
+        'query GetUserById($id: Int!) { user(id: $id) { id name } }';
+      const variables = { id: 1 };
+      const expectedResponse = { user: { id: 1, name: 'Test' } };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withQueryFromFile(filePath)
+        .withVariables(variables)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        fileContent,
+        variables,
+        {},
+      );
+    });
+
+    it('should load query from file with admin secret', async () => {
+      const filePath = 'test-queries/create-user.gql';
+      const fileContent =
+        'mutation CreateUser($name: String!) { insert_users_one(object: { name: $name }) { id } }';
+      const variables = { name: 'John' };
+      const expectedResponse = { insert_users_one: { id: 1 } };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withQueryFromFile(filePath)
+        .withVariables(variables)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        fileContent,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+        }),
+      );
+    });
+
+    it('should chain withQueryFromFile with all other methods', async () => {
+      const filePath = 'test-queries/admin-query.gql';
+      const fileContent = 'query AdminQuery { users { id } }';
+      const variables = { limit: 5 };
+      const token = 'jwt-token';
+      const customHeaders = { 'x-tenant-id': 'tenant-123' };
+      const expectedResponse = { users: [] };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withAuthorizationToken(token)
+        .withHeaders(customHeaders)
+        .withQueryFromFile(filePath)
+        .withVariables(variables)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        fileContent,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': 'tenant-123',
+        }),
+      );
+    });
+
+    it('should cache loaded queries', async () => {
+      const filePath = 'test/queries/get-users.gql';
+      const fileContent = 'query GetUsers { users { id } }';
+      const expectedResponse = { users: [] };
+
+      const loadQuerySpy = jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      await hasuraService
+        .requestBuilder()
+        .withQueryFromFile(filePath)
+        .execute();
+
+      await hasuraService
+        .requestBuilder()
+        .withQueryFromFile(filePath)
+        .execute();
+
+      expect(loadQuerySpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw error when file does not exist', () => {
+      const filePath = 'non-existent-file.gql';
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockImplementation(() => {
+          throw new Error(
+            'Failed to load GraphQL query from non-existent-file.gql: ENOENT: no such file or directory',
+          );
+        });
+
+      expect(() => {
+        hasuraService.requestBuilder().withQueryFromFile(filePath);
+      }).toThrow(
+        'Failed to load GraphQL query from non-existent-file.gql: ENOENT: no such file or directory',
+      );
+    });
+
+    it('should allow mixing withQuery and withQueryFromFile', async () => {
+      const filePath = 'test/queries/get-users.gql';
+      const fileContent = 'query GetUsers { users { id } }';
+      const inlineQuery = 'query Inline { posts { id } }';
+      const expectedResponse = { posts: [] };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withQueryFromFile(filePath)
+        .withQuery(inlineQuery)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(inlineQuery, {}, {});
+    });
+
+    it('should work when withQueryFromFile called after withVariables', async () => {
+      const filePath = 'test/queries/get-users.gql';
+      const fileContent =
+        'query GetUsers($limit: Int!) { users(limit: $limit) { id } }';
+      const variables = { limit: 10 };
+      const expectedResponse = { users: [] };
+
+      jest
+        .spyOn(hasuraService['gqlLoader'], 'loadQuery')
+        .mockReturnValue(fileContent);
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withVariables(variables)
+        .withQueryFromFile(filePath)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        fileContent,
+        variables,
+        {},
       );
     });
   });

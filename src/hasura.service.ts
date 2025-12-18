@@ -1,10 +1,14 @@
 import { GraphQLClient, Variables } from 'graphql-request';
 import { Inject, Injectable } from '@nestjs/common';
 import type { HasuraConfig, HasuraRequestBuilder } from './models';
+import { GraphQLLoaderService } from './graphql-loader/graphql-loader.service';
 
 @Injectable()
 export class HasuraService extends GraphQLClient {
-  constructor(@Inject('HASURA_CONFIG') private readonly config: HasuraConfig) {
+  constructor(
+    @Inject('HASURA_CONFIG') private readonly config: HasuraConfig,
+    private readonly gqlLoader: GraphQLLoaderService,
+  ) {
     super(config.endpoint);
   }
 
@@ -53,11 +57,17 @@ export class HasuraService extends GraphQLClient {
         return builder;
       },
 
+      withQueryFromFile: (filePath: string): HasuraRequestBuilder => {
+        const query = this.gqlLoader.loadQuery(filePath);
+        storedQuery = query;
+        return builder;
+      },
+
       execute: <T = any>(): Promise<T> => {
         if (!storedQuery) {
           return Promise.reject(
             new Error(
-              'Query is required. Use withQuery() before calling execute()',
+              'Query is required. Use withQuery() or withQueryFromFile() before calling execute()',
             ),
           );
         }

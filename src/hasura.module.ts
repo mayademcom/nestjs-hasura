@@ -1,6 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { HasuraAsyncConfig, HasuraConfig } from './models';
 
+import { GraphQLLoaderService } from './graphql-loader/graphql-loader.service';
 import { HasuraService } from './hasura.service';
 
 @Module({})
@@ -27,6 +28,7 @@ export class HasuraModule {
       module: HasuraModule,
       global: false,
       providers: [
+        GraphQLLoaderService,
         HasuraService,
         {
           provide: 'HASURA_CONFIG',
@@ -64,6 +66,7 @@ export class HasuraModule {
       global: false,
       imports: config.imports,
       providers: [
+        GraphQLLoaderService,
         HasuraService,
         {
           provide: 'HASURA_CONFIG',
