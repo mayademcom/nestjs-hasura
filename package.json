@@ -68,7 +68,7 @@
       "!**/*.spec.ts",
       "!**/index.ts"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "coverage",
     "testEnvironment": "node",
     "roots": [
       "<rootDir>/src/",
