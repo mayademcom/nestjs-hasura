@@ -1,6 +1,6 @@
 {
-  "name": "@mayadem/nestjs-hasura",
-  "version": "0.0.1",
+  "name": "@mayademcom/nestjs-hasura",
+  "version": "0.0.0",
   "description": "Hasura module for NestJs projects.",
   "author": "Mayadem",
   "private": false,
