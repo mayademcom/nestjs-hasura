@@ -27,237 +27,394 @@ describe('HasuraService', () => {
     hasuraService = module.get<HasuraService>(HasuraService);
   });
 
-  it('should be defined', () => {
-    expect(hasuraService).toBeDefined();
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(hasuraService).toBeDefined();
+    });
+
+    it('should have correct endpoint', () => {
+      expect(hasuraService['url']).toBe(mockConfig.endpoint);
+    });
+
+    it('should initialize without admin secret', async () => {
+      const configWithoutSecret: HasuraConfig = {
+        endpoint: chance.url(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          {
+            provide: 'HASURA_CONFIG',
+            useValue: configWithoutSecret,
+          },
+          HasuraService,
+        ],
+      }).compile();
+
+      const service = module.get<HasuraService>(HasuraService);
+      expect(service).toBeDefined();
+    });
   });
 
-  it('should have correct endpoint', () => {
-    expect(hasuraService['url']).toBe(mockConfig.endpoint);
+  describe('direct request', () => {
+    it('can send a direct request', async () => {
+      jest.spyOn(hasuraService, 'request').mockResolvedValue(true);
+
+      const response: boolean = await hasuraService.request('query', {});
+
+      expect(response).toBe(true);
+    });
+
+    it('can send a direct request with variables', async () => {
+      const mockData = { users: [{ id: 1, name: 'Test' }] };
+      jest.spyOn(hasuraService, 'request').mockResolvedValue(mockData);
+
+      const query = 'query GetUser($id: Int!) { user(id: $id) { id name } }';
+      const variables = { id: 1 };
+
+      const response: object = await hasuraService.request(query, variables);
+
+      expect(response).toEqual(mockData);
+    });
   });
+  describe('request builder', () => {
+    it('should return a request builder', () => {
+      const builder = hasuraService.requestBuilder();
 
-  it('should initialize without admin secret', async () => {
-    const configWithoutSecret: HasuraConfig = {
-      endpoint: chance.url(),
-    };
+      expect(builder).toBeDefined();
+      expect(builder.withHeaders).toBeDefined();
+      expect(builder.withAdminSecret).toBeDefined();
+      expect(builder.withAuthorizationToken).toBeDefined();
+      expect(builder.execute).toBeDefined();
+    });
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        {
-          provide: 'HASURA_CONFIG',
-          useValue: configWithoutSecret,
-        },
-        HasuraService,
-      ],
-    }).compile();
+    it('can send a request with admin secret', async () => {
+      const expectedResponse = { data: 'test' };
 
-    const service = module.get<HasuraService>(HasuraService);
-    expect(service).toBeDefined();
-  });
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-  it('should return a request builder', () => {
-    const builder = hasuraService.requestBuilder();
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withQuery('query')
+        .execute();
 
-    expect(builder).toBeDefined();
-    expect(builder.withHeaders).toBeDefined();
-    expect(builder.withAdminSecret).toBeDefined();
-    expect(builder.withAuthorizationToken).toBeDefined();
-    expect(builder.request).toBeDefined();
-  });
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        'query',
+        {},
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+        }),
+      );
+    });
 
-  it('can send a request', async () => {
-    jest.spyOn(hasuraService, 'request').mockResolvedValue(true);
+    it('can send a request with authorization token', async () => {
+      const expectedResponse = { data: 'test' };
+      const token = 'jwt-token-123';
 
-    const response: boolean = await hasuraService.request('query', {});
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    expect(response).toBe(true);
-  });
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAuthorizationToken(token)
+        .withQuery('query')
+        .execute();
 
-  it('can send a request with variables', async () => {
-    const mockData = { users: [{ id: 1, name: 'Test' }] };
-    jest.spyOn(hasuraService, 'request').mockResolvedValue(mockData);
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        'query',
+        {},
+        expect.objectContaining({
+          Authorization: `Bearer ${token}`,
+        }),
+      );
+    });
 
-    const query = 'query GetUser($id: Int!) { user(id: $id) { id name } }';
-    const variables = { id: 1 };
+    it('can send a request with custom headers', async () => {
+      const expectedResponse = { data: 'test' };
+      const customHeaders = {
+        'x-hasura-role': 'user',
+        'x-hasura-user-id': '123',
+      };
 
-    const response: object = await hasuraService.request(query, variables);
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    expect(response).toEqual(mockData);
-  });
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withHeaders(customHeaders)
+        .withQuery('query')
+        .execute();
 
-  it('can send a request with admin secret', async () => {
-    const expectedResponse = { data: 'test' };
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        'query',
+        {},
+        expect.objectContaining(customHeaders),
+      );
+    });
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+    it('can chain multiple headers', async () => {
+      const expectedResponse = { data: 'test' };
+      const token = 'jwt-token';
+      const customHeaders = { 'x-tenant-id': 'tenant-123' };
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withAdminSecret()
-      .request('query', {});
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      'query',
-      {},
-      expect.objectContaining({
-        'x-hasura-admin-secret': mockConfig.adminSecret,
-      }),
-    );
-  });
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withAuthorizationToken(token)
+        .withHeaders(customHeaders)
+        .withQuery('query')
+        .execute();
 
-  it('can send a request with authorization token', async () => {
-    const expectedResponse = { data: 'test' };
-    const token = 'jwt-token-123';
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        'query',
+        {},
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': 'tenant-123',
+        }),
+      );
+    });
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+    it('should merge multiple withHeaders calls', async () => {
+      const expectedResponse = { data: 'test' };
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withAuthorizationToken(token)
-      .request('query', {});
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      'query',
-      {},
-      expect.objectContaining({
-        Authorization: `Bearer ${token}`,
-      }),
-    );
-  });
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withHeaders({ 'x-custom-1': 'value1' })
+        .withHeaders({ 'x-custom-2': 'value2' })
+        .withQuery('query')
+        .execute();
 
-  it('can send a request with custom headers', async () => {
-    const expectedResponse = { data: 'test' };
-    const customHeaders = {
-      'x-hasura-role': 'user',
-      'x-hasura-user-id': '123',
-    };
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        'query',
+        {},
+        expect.objectContaining({
+          'x-custom-1': 'value1',
+          'x-custom-2': 'value2',
+        }),
+      );
+    });
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+    it('should handle empty headers when no admin secret configured', async () => {
+      const configWithoutSecret: HasuraConfig = {
+        endpoint: chance.url(),
+      };
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withHeaders(customHeaders)
-      .request('query', {});
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          {
+            provide: 'HASURA_CONFIG',
+            useValue: configWithoutSecret,
+          },
+          HasuraService,
+        ],
+      }).compile();
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      'query',
-      {},
-      expect.objectContaining(customHeaders),
-    );
-  });
+      const service = module.get<HasuraService>(HasuraService);
+      const expectedResponse = { data: 'test' };
 
-  it('can chain multiple headers', async () => {
-    const expectedResponse = { data: 'test' };
-    const token = 'jwt-token';
-    const customHeaders = { 'x-tenant-id': 'tenant-123' };
+      const executeRequestSpy = jest
+        .spyOn(service as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+      const response: object = await service
+        .requestBuilder()
+        .withAdminSecret()
+        .withQuery('query')
+        .execute();
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withAdminSecret()
-      .withAuthorizationToken(token)
-      .withHeaders(customHeaders)
-      .request('query', {});
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith('query', {}, {});
+    });
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      'query',
-      {},
-      expect.objectContaining({
-        'x-hasura-admin-secret': mockConfig.adminSecret,
-        Authorization: `Bearer ${token}`,
-        'x-tenant-id': 'tenant-123',
-      }),
-    );
-  });
+    it('can send request with variables', async () => {
+      const query =
+        'mutation InsertUser($name: String!) { insert_users(objects: { name: $name }) { affected_rows } }';
+      const variables = { name: 'John' };
+      const expectedResponse = { affected_rows: 1 };
 
-  it('should merge multiple withHeaders calls', async () => {
-    const expectedResponse = { data: 'test' };
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withQuery(query)
+        .withVariables(variables)
+        .execute();
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withHeaders({ 'x-custom-1': 'value1' })
-      .withHeaders({ 'x-custom-2': 'value2' })
-      .request('query', {});
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        query,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+        }),
+      );
+    });
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      'query',
-      {},
-      expect.objectContaining({
-        'x-custom-1': 'value1',
-        'x-custom-2': 'value2',
-      }),
-    );
-  });
+    it('should store query with withQuery', () => {
+      const query = 'query { users { id } }';
 
-  it('should handle empty headers when no admin secret configured', async () => {
-    const configWithoutSecret: HasuraConfig = {
-      endpoint: chance.url(),
-    };
+      const builder = hasuraService.requestBuilder().withQuery(query);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        {
-          provide: 'HASURA_CONFIG',
-          useValue: configWithoutSecret,
-        },
-        HasuraService,
-      ],
-    }).compile();
+      expect(builder).toBeDefined();
+    });
 
-    const service = module.get<HasuraService>(HasuraService);
-    const expectedResponse = { data: 'test' };
+    it('should store variables with withVariables', () => {
+      const variables = { id: 1 };
+      const builder = hasuraService.requestBuilder().withVariables(variables);
 
-    const requestSpy = jest
-      .spyOn(service, 'request')
-      .mockResolvedValue(expectedResponse);
+      expect(builder).toBeDefined();
+    });
 
-    const response: object = await service
-      .requestBuilder()
-      .withAdminSecret()
-      .request('query', {});
+    it('should execute request with stored query and variables', async () => {
+      const query = 'query GetUser($id: Int!) { user(id: $id) { id name } }';
+      const variables = { id: 1 };
+      const expectedResponse = { user: { id: 1, name: 'Test' } };
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith('query', {}, {});
-  });
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
 
-  it('can send request with variables', async () => {
-    const query =
-      'mutation InsertUser($name: String!) { insert_users(objects: { name: $name }) { affected_rows } }';
-    const variables = { name: 'John' };
-    const expectedResponse = { affected_rows: 1 };
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withQuery(query)
+        .withVariables(variables)
+        .execute();
 
-    const requestSpy = jest
-      .spyOn(hasuraService, 'request')
-      .mockResolvedValue(expectedResponse);
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(query, variables, {});
+    });
 
-    const response: object = await hasuraService
-      .requestBuilder()
-      .withAdminSecret()
-      .request(query, variables);
+    it('should execute request with headers, query and variables', async () => {
+      const query = 'query GetUsers { users { id } }';
+      const variables = { limit: 10 };
+      const expectedResponse = { users: [] };
 
-    expect(response).toEqual(expectedResponse);
-    expect(requestSpy).toHaveBeenCalledWith(
-      query,
-      variables,
-      expect.objectContaining({
-        'x-hasura-admin-secret': mockConfig.adminSecret,
-      }),
-    );
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withQuery(query)
+        .withVariables(variables)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        query,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+        }),
+      );
+    });
+
+    it('should chain all builder methods', async () => {
+      const query =
+        'mutation CreateUser($name: String!) { insert_users(objects: { name: $name }) { affected_rows } }';
+      const variables = { name: 'John' };
+      const token = 'jwt-token-123';
+      const customHeaders = { 'x-tenant-id': 'tenant-123' };
+      const expectedResponse = { affected_rows: 1 };
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withAdminSecret()
+        .withAuthorizationToken(token)
+        .withHeaders(customHeaders)
+        .withQuery(query)
+        .withVariables(variables)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        query,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': 'tenant-123',
+        }),
+      );
+    });
+
+    it('should throw error when execute called without query', async () => {
+      await expect(
+        hasuraService.requestBuilder().withAdminSecret().execute(),
+      ).rejects.toThrow(
+        'Query is required. Use withQuery() before calling execute()',
+      );
+    });
+
+    it('should execute without variables', async () => {
+      const query = 'query { users { id } }';
+      const expectedResponse = { users: [] };
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withQuery(query)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(query, {}, {});
+    });
+
+    it('should allow method chaining in any order', async () => {
+      const query = 'query { users { id } }';
+      const variables = { limit: 5 };
+      const expectedResponse = { users: [] };
+
+      const executeRequestSpy = jest
+        .spyOn(hasuraService as any, 'executeRequest')
+        .mockResolvedValue(expectedResponse);
+
+      const response: object = await hasuraService
+        .requestBuilder()
+        .withVariables(variables)
+        .withAdminSecret()
+        .withQuery(query)
+        .execute();
+
+      expect(response).toEqual(expectedResponse);
+      expect(executeRequestSpy).toHaveBeenCalledWith(
+        query,
+        variables,
+        expect.objectContaining({
+          'x-hasura-admin-secret': mockConfig.adminSecret,
+        }),
+      );
+    });
   });
 });

@@ -8,8 +8,22 @@ export class HasuraService extends GraphQLClient {
     super(config.endpoint);
   }
 
+  /**
+   * Internal request execution
+   * @private
+   */
+  private executeRequest<T = any>(
+    document: string,
+    variables?: Variables,
+    headers?: Record<string, string>,
+  ): Promise<T> {
+    return super.request<T>(document, variables, headers);
+  }
+
   requestBuilder(): HasuraRequestBuilder {
     let finalHeaders: Record<string, string> = {};
+    let storedQuery: string | undefined;
+    let storedVariables: Variables = {};
 
     const builder: HasuraRequestBuilder = {
       withHeaders: (headers: Record<string, string>): HasuraRequestBuilder => {
@@ -29,11 +43,30 @@ export class HasuraService extends GraphQLClient {
         return builder;
       },
 
-      request: <T = any>(
-        document: string,
-        variables?: Variables,
-      ): Promise<T> => {
-        return this.request<T>(document, variables, finalHeaders);
+      withQuery: (query: string): HasuraRequestBuilder => {
+        storedQuery = query;
+        return builder;
+      },
+
+      withVariables: (variables: Variables): HasuraRequestBuilder => {
+        storedVariables = variables;
+        return builder;
+      },
+
+      execute: <T = any>(): Promise<T> => {
+        if (!storedQuery) {
+          return Promise.reject(
+            new Error(
+              'Query is required. Use withQuery() before calling execute()',
+            ),
+          );
+        }
+
+        return this.executeRequest<T>(
+          storedQuery,
+          storedVariables,
+          finalHeaders,
+        );
       },
     };
 
