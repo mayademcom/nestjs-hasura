@@ -407,47 +407,6 @@ const result = await this.hasura
 // result.users is now typed as User[]
 ```
 
-## Testing
-
-### Unit Testing
-
-```typescript
-import { Test, TestingModule } from '@nestjs/testing';
-import { HasuraService } from '@mayademcom/nestjs-hasura';
-
-describe('UserService', () => {
-  let service: UserService;
-  let hasuraService: HasuraService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UserService,
-        {
-          provide: HasuraService,
-          useValue: {
-            requestBuilder: jest.fn().mockReturnValue({
-              withAdminSecret: jest.fn().mockReturnThis(),
-              withQuery: jest.fn().mockReturnThis(),
-              withVariables: jest.fn().mockReturnThis(),
-              execute: jest.fn().mockResolvedValue({ users: [] }),
-            }),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<UserService>(UserService);
-    hasuraService = module.get<HasuraService>(HasuraService);
-  });
-
-  it('should get users', async () => {
-    const result = await service.getUsers(10);
-    expect(result).toEqual({ users: [] });
-  });
-});
-```
-
 ## Environment Variables
 
 Create a `.env` file in your project root:
@@ -639,118 +598,9 @@ npm run release -- --dry-run
 
 This will show you what would happen without making any changes.
 
-# .github/workflows/release.yml
-
-name: Release
-
-on:
-push:
-branches: - main
-
-jobs:
-release:
-runs-on: ubuntu-latest
-if: "!contains(github.event.head_commit.message, 'chore(release)')"
-steps: - uses: actions/checkout@v3
-with:
-fetch-depth: 0
-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Release
-        run: npm run release -- --ci
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-````
-
 ### Commit Message Convention
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning:
-
-**Version Bumps:**
-
-- `feat:` New feature → **MINOR** version bump (1.0.0 → 1.1.0)
-- `fix:` Bug fix → **PATCH** version bump (1.0.0 → 1.0.1)
-- `BREAKING CHANGE:` or `feat!:` → **MAJOR** version bump (1.0.0 → 2.0.0)
-
-**No Version Bump:**
-
-- `docs:` Documentation changes
-- `chore:` Maintenance tasks
-- `test:` Test updates
-- `refactor:` Code refactoring
-- `style:` Code formatting
-- `perf:` Performance improvements
-
-**Examples:**
-
-```bash
-# Feature (minor bump: 1.0.0 -> 1.1.0)
-git commit -m "feat: add GraphQL subscription support"
-git commit -m "feat(builder): add withSubscription() method"
-
-# Bug fix (patch bump: 1.0.0 -> 1.0.1)
-git commit -m "fix: resolve cache invalidation issue"
-git commit -m "fix(loader): handle missing file gracefully"
-
-# Breaking change (major bump: 1.0.0 -> 2.0.0)
-git commit -m "feat!: change requestBuilder API signature"
-# or
-git commit -m "feat: redesign builder API
-
-BREAKING CHANGE: requestBuilder() now returns a new interface"
-
-# No version bump
-git commit -m "docs: update README with examples"
-git commit -m "chore: update dependencies"
-git commit -m "test: add integration tests"
-````
-
-### Configuration
-
-The release configuration is in `.release-it.json`:
-
-```json
-{
-  "git": {
-    "commitMessage": "chore(release): ${version}",
-    "tagName": "v${version}",
-    "push": true,
-    "requireCleanWorkingDir": true,
-    "requireUpstream": true
-  },
-  "npm": {
-    "publish": true
-  },
-  "github": {
-    "release": true,
-    "releaseName": "Release ${version}"
-  },
-  "hooks": {
-    "before:init": ["npm test"],
-    "after:bump": "npm run build"
-  },
-  "plugins": {
-    "@release-it/conventional-changelog": {
-      "preset": "angular",
-      "infile": "CHANGELOG.md"
-    }
-  }
-}
-```
+Follow [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning.
 
 ### Troubleshooting
 
@@ -842,7 +692,6 @@ MIT © [Mayadem](https://github.com/mayademcom)
 ## Support
 
 - 📫 [Issues](https://github.com/mayademcom/nestjs-hasura/issues)
-- 💬 [Discussions](https://github.com/mayademcom/nestjs-hasura/discussions)
 - 📖 [Documentation](https://github.com/mayademcom/nestjs-hasura)
 
 ## Changelog
